@@ -92,7 +92,14 @@ async def post_sticky(message, sticky_name):
 
     if (guild_id in stickies and sticky_name in stickies[guild_id]):
         sticky = stickies[guild_id][sticky_name]
-        await message.channel.send(sticky["message"])
+        msg = await build_message(message,sticky)
+        await message.channel.send(embed = msg)
+
+async def build_message(message,sticky):
+    user = await message.guild.fetch_member(sticky["author"])
+    embedVar = discord.Embed(color=0x00ff00)
+    embedVar.add_field(name=sticky["message"], value=f"{user.name}#{user.discriminator} " + sticky["time"], inline=False)
+    return embedVar
     
 
 ##########################################
