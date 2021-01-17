@@ -76,14 +76,27 @@ async def addsticky(ctx, sticky_name, postID):
         stickies = json.load(f)
     
     guid = ctx.guild.id
-    if (guid not in stickies):
-        stickies[guid] = {}
     
     stickies[guid][sticky_name] = sticky
     with open(STICKIES_PATH, "w") as f:
         json.dump(stickies, f, indent=4, default=str)
 
     await ctx.channel.send(f"added sticky \"{sticky_name}\"")
+
+@client.command()
+async def removesticky(ctx, sticky_name):
+    with open(STICKIES_PATH,"r") as f:
+        stickies = json.load(f)
+    
+    guid = str(ctx.guild.id)
+    if (guid not in stickies or sticky_name not in stickies[guid])
+        await ctx.channel.send(f"There is no sticky named \"{sticky_name}\"")
+        return
+    
+    stickies[guid].pop[sticky_name]
+    with open(STICKIES_PATH, "w") as f:
+    json.dump(stickies, f, indent=4, default=str)
+    await ctx.channel.send(f"Removed sticky \"{sticky_name}\"")
 
 async def post_sticky(message, sticky_name):
     with open(STICKIES_PATH,"r") as f:
