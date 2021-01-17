@@ -2,13 +2,25 @@ import os
 import discord
 from dotenv import load_dotenv
 import random
+import json
 from discord.ext import commands
 
 load_dotenv()
-bot = commands.Bot(command_prefix='!')
 TOKEN = os.getenv('DISCORD_TOKEN')
-client = discord.Client()
 
+
+def get_prefix(client,message):
+    with open("Data/prefixes.json",'r') as file:
+        prefixes = json.load(file)
+    return prefixes[message.guild.id]
+
+client = commands.Bot(command_prefix = get_prefix)
+
+@client.event
+async def on_guild_join(guild):
+    with open("Data/prefixes.json",'r') as file:
+        prefixes = json.load(file)
+    prefixes[guild.id] = '!'
 
 @client.event
 async def on_ready():
@@ -22,14 +34,8 @@ async def on_message(message):
     if random.random() < 0.00001:
         await message.channel.send("AAAAAAAAAAAAAAAAAAAAA")
 
-@bot.command()
+@client.command()
 async def command(ctx, action, command_name, postID):
-    if (action == "add"):
-        query = "SELECT * FROM commands"
-        with Database as db:
-            result = db(query)
-            result.fetchall()
-    elif(action == "remove"):
-        query = "SELECT * FROM commands"
+    print(f"{action} {command_name} {postID}")
 
 client.run(TOKEN)
