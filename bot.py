@@ -7,20 +7,29 @@ from discord.ext import commands
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+DEFAULT_PREFIX = '!'
 
 
 def get_prefix(client,message):
     with open("Data/prefixes.json",'r') as file:
         prefixes = json.load(file)
-    return prefixes[message.guild.id]
+    
+    if (prefixes[message.guild.id] != null):
+        return prefixes[message.guild.id]
+    else:
+        set_prefix(message.guild.id,DEFAULT_PREFIX)
+        return DEFAULT_PREFIX
+
+def set_prefix(guild_id,prefix):
+    with open("Data/prefixes.json",'r') as file:
+        prefixes = json.load(file)
+    prefixes[guild_id] = prefix
 
 client = commands.Bot(command_prefix = get_prefix)
 
 @client.event
 async def on_guild_join(guild):
-    with open("Data/prefixes.json",'r') as file:
-        prefixes = json.load(file)
-    prefixes[guild.id] = '!'
+    set_prefix(guild.id,DEFAULT_PREFIX)
 
 @client.event
 async def on_ready():
