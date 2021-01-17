@@ -1,6 +1,5 @@
 import sqlite3
 
-connection = sqlite3.connect("myDatabase.db")
 #https://repl.it/talk/learn/How-to-create-an-SQLite3-database-in-Python-3/15755
 #Example:
 # with Database() as db:
