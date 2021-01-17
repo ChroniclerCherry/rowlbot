@@ -47,7 +47,9 @@ async def on_guild_remove(guild):
     with open(PREFIXES_PATH, "w") as f:
         json.dump(prefixes, f, indent=4)
 
-@client.command()
+@client.command(
+    help=f"prefix - new prefix for commands",
+	brief="Change the sticky for commands for this bot")
 async def setprefix(ctx, prefix):
     with open(PREFIXES_PATH, "r") as f:
         prefixes = json.load(f)
@@ -61,7 +63,9 @@ async def setprefix(ctx, prefix):
 ##########################################
 
 
-@client.command()
+@client.command(
+    help=f"sticky_name - the name used to call up this sticky\npostID - id of the post to sticky",
+	brief="Add a new sticky message to this server")
 async def addsticky(ctx, sticky_name, postID):
 
     message = await ctx.channel.fetch_message(postID)
@@ -75,7 +79,7 @@ async def addsticky(ctx, sticky_name, postID):
     with open(STICKIES_PATH,"r") as f:
         stickies = json.load(f)
     
-    guid = ctx.guild.id
+    guid = str(ctx.guild.id)
     
     stickies[guid][sticky_name] = sticky
     with open(STICKIES_PATH, "w") as f:
@@ -83,19 +87,21 @@ async def addsticky(ctx, sticky_name, postID):
 
     await ctx.channel.send(f"added sticky \"{sticky_name}\"")
 
-@client.command()
+@client.command(
+    help=f"sticky_name - the name of the sticky to be removed",
+	brief="Remove a sticky message to this server")
 async def removesticky(ctx, sticky_name):
     with open(STICKIES_PATH,"r") as f:
         stickies = json.load(f)
     
     guid = str(ctx.guild.id)
-    if (guid not in stickies or sticky_name not in stickies[guid])
+    if (guid not in stickies or sticky_name not in stickies[guid]):
         await ctx.channel.send(f"There is no sticky named \"{sticky_name}\"")
         return
     
-    stickies[guid].pop[sticky_name]
+    stickies[guid].pop(sticky_name)
     with open(STICKIES_PATH, "w") as f:
-    json.dump(stickies, f, indent=4, default=str)
+        json.dump(stickies, f, indent=4, default=str)
     await ctx.channel.send(f"Removed sticky \"{sticky_name}\"")
 
 async def post_sticky(message, sticky_name):
@@ -106,13 +112,13 @@ async def post_sticky(message, sticky_name):
     if (guild_id in stickies and sticky_name in stickies[guild_id]):
         sticky = stickies[guild_id][sticky_name]
         msg = await build_message(message,sticky)
-        await message.channel.send(embed = msg)
+        await message.channel.send(msg)
 
 async def build_message(message,sticky):
     user = await message.guild.fetch_member(sticky["author"])
-    embedVar = discord.Embed(color=0x00ff00)
-    embedVar.add_field(name=sticky["message"], value=f"{user.name}#{user.discriminator} " + sticky["time"], inline=False)
-    return embedVar
+    msg = "\t\"" + sticky["message"] + "\n"
+    msg += f"\n\t\t\t- {user.name}#{user.discriminator} " + sticky["time"]
+    return msg
     
 
 ##########################################
