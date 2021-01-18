@@ -63,19 +63,68 @@ async def setprefix(ctx, prefix):
 #             STICKIES                   #
 ##########################################
 
+STICKY_MESSAGE = "message"
+STICKY_AUTHOR = "author"
+STICKY_TIME = "time"
+STICKY_MESSAGE_ID = "message_id"
+STICKY_JUMP_URL = "jump_url"
+STICKY_IMAGE_URL = "image_url"
+STICKY_EMBEDED = "embed"
+STICKY_TYPE = "type"
+STICKY_TYPE_IMAGE = "STICKY_TYPE_IMAGE"
+STICKY_TYPE_DEFAULT = "STICKY_TYPE_DEFAULT"
 
 @client.command(
-    help=f"sticky_name - the name used to call up this sticky\npostID - id of the post to sticky\nembed - defaults to true. Embedded stickies don't show image/video previews",
-	brief="Add a new sticky message to this server")
-async def addsticky(ctx, sticky_name, postID, embed = True):
+    help=f"",
+	brief="Add, Remove, and View stickies in this server")
+async def sticky (ctx, subcommand = None, sticky_name = None, message_id = None, embed = True):
+    if subcommand == "add":
+        await add_sticky(ctx,sticky_name,message_id,embed),
+    if subcommand == "add_image":
+        await add_image(ctx,sticky_name,message_id),
+    elif subcommand == "list":
+        await list_stickies(ctx),
+    elif subcommand == "remove":
+        await remove_sticky(ctx,sticky_name)
+    elif subcommand == None:
+        prefix = get_prefix(ctx,ctx.message)
+        msg = discord.Embed(title="Stickies Help",color=0x63C383, description = f"Stickies let you save posts to a command to easily bring up later with `{prefix}<sticky name>`")
+        msg.add_field(name=f"{prefix}sticky add <sticky_name> <message_id> <embed>", value=f"Adds the given message at message_id to the command sticky_name.\nUsing the same sticky_name as an existing sticky will override it.\nEmbeded is optional and defaults to true", inline=False)
+        msg.add_field(name=f"{prefix}sticky add_image <sticky_name> <image_url>", value=f"Adds a single image as a sticky", inline=False)
+        msg.add_field(name=f"{prefix}sticky list", value=f"Lists all current stickies", inline=False)
+        msg.add_field(name=f"{prefix}sticky remove <sticky_name>", value=f"Removes the sticky at the given name", inline=False)
+        await ctx.channel.send(embed = msg)
 
+async def add_image(ctx,sticky_name,image_url):
+    sticky = {
+        STICKY_AUTHOR:ctx.author.id,
+        STICKY_TIME:pytz.utc.localize(datetime.utcnow()).strftime("%b %d %Y %H:%M:%S") + " UTC",
+        STICKY_IMAGE_URL:image_url,
+        STICKY_TYPE:STICKY_TYPE_IMAGE }
+
+    with open(STICKIES_PATH,"r") as f:
+        stickies = json.load(f)
+    
+    guid = str(ctx.guild.id)
+    if (guid not in stickies):
+        stickies[guid] = {}
+    
+    stickies[guid][sticky_name] = sticky
+    with open(STICKIES_PATH, "w") as f:
+        json.dump(stickies, f, indent=4, default=str)
+
+    await ctx.channel.send(f"added sticky \"{sticky_name}\"")
+
+async def add_sticky(ctx, sticky_name, postID, embed = True):
     message = await ctx.channel.fetch_message(postID)
     sticky = {
-                "message":message.content,
-                "author":ctx.author.id,
-                "time":pytz.utc.localize(datetime.utcnow()).strftime("%b %d %Y %H:%M:%S") + " UTC",
-                "post_id":postID,
-                "embed":embed
+                STICKY_MESSAGE:message.content,
+                STICKY_AUTHOR:ctx.author.id,
+                STICKY_TIME:pytz.utc.localize(datetime.utcnow()).strftime("%b %d %Y %H:%M:%S") + " UTC",
+                STICKY_MESSAGE_ID:postID,
+                STICKY_JUMP_URL:message.jump_url,
+                STICKY_EMBEDED:embed,
+                STICKY_TYPE : STICKY_TYPE_DEFAULT
                 }
 
     with open(STICKIES_PATH,"r") as f:
@@ -91,10 +140,7 @@ async def addsticky(ctx, sticky_name, postID, embed = True):
 
     await ctx.channel.send(f"added sticky \"{sticky_name}\"")
 
-@client.command(
-    help=f"sticky_name - the name of the sticky to be removed",
-	brief="Remove a sticky message to this server")
-async def removesticky(ctx, sticky_name):
+async def remove_sticky(ctx, sticky_name):
     with open(STICKIES_PATH,"r") as f:
         stickies = json.load(f)
     
@@ -108,6 +154,22 @@ async def removesticky(ctx, sticky_name):
         json.dump(stickies, f, indent=4, default=str)
     await ctx.channel.send(f"Removed sticky \"{sticky_name}\"")
 
+async def list_stickies(ctx):
+    response = discord.Embed(color=0x63C383)
+    guid = str(ctx.guild.id)
+    prefix = get_prefix(ctx,ctx.message)
+    with open(STICKIES_PATH,"r") as f:
+        stickies = json.load(f)
+    
+    stickies_list = ""
+    if (guid in stickies):
+        for key in stickies[guid]:
+            stickies_list += f"{prefix}{key}\n"
+    else:
+        stickies_list = "No stickies yet"
+    response.add_field(name=f"Stickies in {ctx.guild.name}",value=stickies_list,inline=False)
+    await ctx.channel.send(embed=response)
+
 async def post_sticky(message, sticky_name):
     with open(STICKIES_PATH,"r") as f:
             stickies = json.load(f)
@@ -116,13 +178,18 @@ async def post_sticky(message, sticky_name):
     if (guild_id in stickies and sticky_name in stickies[guild_id]):
         sticky = stickies[guild_id][sticky_name]
         user = await message.guild.fetch_member(sticky["author"])
-        if (sticky["embed"] == False):
-            msg = "\t\"" + sticky["message"] + "\n"
+
+        if (sticky[STICKY_TYPE] == STICKY_TYPE_IMAGE):
+            msg = discord.Embed()
+            msg.set_image(url=sticky[STICKY_IMAGE_URL])
+            await message.channel.send(embed = msg)
+        elif sticky[STICKY_EMBEDED] == False:
+            msg = "\t\"" + sticky["message"] + "\"\n"
             msg += f"\n\t\t\t- {user.name}#{user.discriminator} " + sticky["time"]
             await message.channel.send(msg)
         else:
-            msg = discord.Embed(color=0x63C383)
-            msg.add_field(name=sticky["message"], value=f"\t- {user.name}#{user.discriminator} " + sticky["time"], inline=False)
+            msg = discord.Embed(color=0x63C383,description=sticky["message"])
+            msg.add_field(name=f"\t- {user.name}#{user.discriminator} "+sticky["time"], value=f"[Click to go to post]({sticky[STICKY_JUMP_URL]})")
             await message.channel.send(embed = msg)
 
 ##########################################
