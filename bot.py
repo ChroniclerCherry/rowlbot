@@ -6,6 +6,7 @@ import json
 from discord.ext import commands
 from datetime import datetime
 import pytz
+import re
 
 ##########################################
 #             constants                  #
@@ -15,7 +16,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 DEFAULT_PREFIX = '!'
 PREFIXES_PATH = "Data/prefixes.json"
 STICKIES_PATH = "Data/stickies.json"
-
 
 ##########################################
 #             prefixes                   #
@@ -121,7 +121,34 @@ async def post_sticky(message, sticky_name):
             msg = discord.Embed(color=0x63C383)
             msg.add_field(name=sticky["message"], value=f"\t- {user.name}#{user.discriminator} " + sticky["time"], inline=False)
             await message.channel.send(embed = msg)
-    
+
+##########################################
+#                 D&D                    #
+##########################################
+
+@client.command(
+    help=f"dice - standard d&d dice format, i.e. 2d20+1",
+	brief="Roll dice")
+async def roll(ctx, dice):
+    d_index = int(dice.find('d'))
+    plus_index = int(dice.find('+'))
+    num_dice = int(dice[:d_index])
+    dice_type = int(dice[d_index+1:plus_index])
+    if (plus_index == -1):
+        modifier = 0
+    else:
+        modifier = int(dice[plus_index+1:])
+
+    total = modifier
+    roll = f"Rolling {dice}\n("
+    for n in range(num_dice):
+        rng = random.randint(1,dice_type+1)
+        total += rng
+        roll += str(rng) + " "
+
+    roll += f")\nTotal: {total}"
+    await ctx.channel.send(roll)
+
 
 ##########################################
 #             GENERAL                    #
