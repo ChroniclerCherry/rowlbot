@@ -132,17 +132,22 @@ async def post_sticky(message, sticky_name):
 async def roll(ctx, dice):
     d_index = int(dice.find('d'))
     plus_index = int(dice.find('+'))
-    num_dice = int(dice[:d_index])
-    dice_type = int(dice[d_index+1:plus_index])
+    if (d_index == 0):
+        num_dice = 1
+    else:
+        num_dice = int(dice[:d_index])
+    
     if (plus_index == -1):
         modifier = 0
+        dice_type = int(dice[d_index+1:])
     else:
+        dice_type = int(dice[d_index+1:plus_index])
         modifier = int(dice[plus_index+1:])
 
     total = modifier
     roll = f"Rolling {dice}\n("
     for n in range(num_dice):
-        rng = random.randint(1,dice_type+1)
+        rng = random.randint(1,dice_type)
         total += rng
         roll += str(rng) + " "
 
