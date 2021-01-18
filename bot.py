@@ -49,7 +49,7 @@ async def on_guild_remove(guild):
 
 @client.command(
     help=f"prefix - new prefix for commands",
-	brief="Change the sticky for commands for this bot")
+	brief="Change the prefix for commands for this bot")
 async def setprefix(ctx, prefix):
     with open(PREFIXES_PATH, "r") as f:
         prefixes = json.load(f)
@@ -59,6 +59,7 @@ async def setprefix(ctx, prefix):
     await ctx.send(f"Prefix changed to: {prefix}")
 
 ##########################################
+
 #             STICKIES                   #
 ##########################################
 
@@ -81,6 +82,8 @@ async def addsticky(ctx, sticky_name, postID, embed = True):
         stickies = json.load(f)
     
     guid = str(ctx.guild.id)
+    if (guid not in stickies):
+        stickies[guid] = {}
     
     stickies[guid][sticky_name] = sticky
     with open(STICKIES_PATH, "w") as f:
@@ -130,13 +133,13 @@ async def post_sticky(message, sticky_name):
     help=f"dice - standard d&d dice format, i.e. 2d20+1",
 	brief="Roll dice")
 async def roll(ctx, dice):
+    block = discord.Embed(color=0x63C383)
     d_index = int(dice.find('d'))
     plus_index = int(dice.find('+'))
     if (d_index == 0):
         num_dice = 1
     else:
         num_dice = int(dice[:d_index])
-    
     if (plus_index == -1):
         modifier = 0
         dice_type = int(dice[d_index+1:])
@@ -145,14 +148,15 @@ async def roll(ctx, dice):
         modifier = int(dice[plus_index+1:])
 
     total = modifier
-    roll = f"Rolling {dice}\n("
+    roll = f"("
     for n in range(num_dice):
         rng = random.randint(1,dice_type)
         total += rng
         roll += str(rng) + " "
 
     roll += f")\nTotal: {total}"
-    await ctx.channel.send(roll)
+    block.add_field(name=f"Rolling {dice}", value=roll, inline=False)
+    await ctx.channel.send(embed = block)
 
 
 ##########################################
