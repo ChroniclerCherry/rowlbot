@@ -240,7 +240,7 @@ async def on_message(message):
     if (message.content.startswith(get_prefix(None,message))):
         await post_sticky(message,message.content[1:])
 
-    if (random.Random() < 0.3 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
+    if (random.random() < 0.3 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
         await message.channel.send("_Summons gervig_")
 
     if random.random() < 0.00001:
