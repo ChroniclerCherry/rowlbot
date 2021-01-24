@@ -119,7 +119,7 @@ async def add_sticky(ctx, sticky_name, postID, embed = True):
     message = await ctx.channel.fetch_message(postID)
     sticky = {
                 STICKY_MESSAGE:message.content,
-                STICKY_AUTHOR:ctx.author.id,
+                STICKY_AUTHOR:message.author.id,
                 STICKY_TIME:pytz.utc.localize(datetime.utcnow()).strftime("%b %d %Y %H:%M:%S") + " UTC",
                 STICKY_MESSAGE_ID:postID,
                 STICKY_JUMP_URL:message.jump_url,
@@ -184,8 +184,7 @@ async def post_sticky(message, sticky_name):
             msg.set_image(url=sticky[STICKY_IMAGE_URL])
             await message.channel.send(embed = msg)
         elif sticky[STICKY_EMBEDED] == False:
-            msg = "\t\"" + sticky["message"] + "\"\n"
-            msg += f"\n\t\t\t- {user.name}#{user.discriminator} " + sticky["time"]
+            msg = sticky["message"]
             await message.channel.send(msg)
         else:
             msg = discord.Embed(color=0x63C383,description=sticky["message"])
@@ -240,6 +239,9 @@ async def on_message(message):
 
     if (message.content.startswith(get_prefix(None,message))):
         await post_sticky(message,message.content[1:])
+
+    if (random.Random() < 0.3 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
+        await message.channel.send("_Summons gervig_")
 
     if random.random() < 0.00001:
         await message.channel.send("AAAAAAAAAAAAAAAAAAAAA")
