@@ -253,9 +253,9 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith(f'<@{client.user.id}> ') or message.content.startswith(f'<!@{client.user.id}> '):
+    if message.content.startswith(f'<@{client.user.id}>') or message.content.startswith(f'<@!{client.user.id}>'):
         message.content = message.content.replace(f'<@{client.user.id}> ',get_prefix(None,message))
-        message.content = message.content.replace(f'<!@{client.user.id}> ',get_prefix(None,message))
+        message.content = message.content.replace(f'<@!{client.user.id}> ',get_prefix(None,message))
         await client.process_commands(message)
         return
 
