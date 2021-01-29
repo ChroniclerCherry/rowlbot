@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import random
 import json
 from discord.ext import commands
+
 from datetime import datetime
 import pytz
 import re
@@ -32,7 +33,11 @@ def set_prefix(guild_id,prefix):
         prefixes = json.load(f)
     prefixes[guild_id] = prefix
 
-client = commands.Bot(command_prefix=get_prefix)
+client = commands.Bot(
+    command_prefix=get_prefix,
+    description='i screm',
+    case_insensitive=True
+)
 
 @client.event
 async def on_guild_join(guild):
@@ -49,15 +54,26 @@ async def on_guild_remove(guild):
 
 @client.command(
     help=f"prefix - new prefix for commands",
-	brief="Change the prefix for commands for this bot")
-async def setprefix(ctx, prefix):
+	brief="Change the prefix for commands for this bot.")
+async def prefix(ctx, subcommand = None, prefix = None):
+    if (subcommand == "set"):
+        set_prefix_command(ctx,prefix)
+    elif (subcommand == None):
+        prefix = get_prefix(ctx,ctx.message)
+        msg = discord.Embed(title="Prefix Help",color=0x63C383, description = f"The current prefix for this bot is `{prefix}`")
+        msg.add_field(name=f"{prefix}prefix set <prefix>", value=f"Changes the current prefix used by the bot on this server to the given prefix", inline=False)
+        await ctx.channel.send(embed = msg)
+
+
+async def set_prefix_command(ctx,prefix):
     with open(PREFIXES_PATH, "r") as f:
         prefixes = json.load(f)
-    prefixes[str(ctx.guild.id)] = prefix
+        prefixes[str(ctx.guild.id)] = prefix
+
     with open(PREFIXES_PATH, "w") as f:
         json.dump(prefixes, f, indent=4)
+    
     await ctx.send(f"Prefix changed to: {prefix}")
-
 ##########################################
 
 #             STICKIES                   #
@@ -237,13 +253,19 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if message.content.startswith(f'<@{client.user.id}> ') or message.content.startswith(f'<!@{client.user.id}> '):
+        message.content = message.content.replace(f'<@{client.user.id}> ',get_prefix(None,message))
+        message.content = message.content.replace(f'<!@{client.user.id}> ',get_prefix(None,message))
+        await client.process_commands(message)
+        return
+
     if (message.content.startswith(get_prefix(None,message))):
         await post_sticky(message,message.content[1:])
 
-    if (random.random() < 0.3 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
+    if (message.author.id != 287009371966406667 and random.random() < 0.05 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
         await message.channel.send("_Summons gervig_")
 
-    if random.random() < 0.00001:
+    if random.random() < 0.005:
         await message.channel.send("AAAAAAAAAAAAAAAAAAAAA")
 
     await client.process_commands(message)
