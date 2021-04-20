@@ -3,7 +3,9 @@ import discord
 from dotenv import load_dotenv
 import random
 import json
-from discord.ext import commands
+from discord.ext import commands, tasks
+from bs4 import BeautifulSoup
+import requests
 
 from datetime import datetime
 import pytz
@@ -17,6 +19,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 DEFAULT_PREFIX = '!'
 PREFIXES_PATH = "Data/prefixes.json"
 STICKIES_PATH = "Data/stickies.json"
+IDs_PATH = "Data/FRIDs.json"
 
 ##########################################
 #             prefixes                   #
@@ -75,7 +78,6 @@ async def set_prefix_command(ctx,prefix):
     
     await ctx.send(f"Prefix changed to: {prefix}")
 ##########################################
-
 #             STICKIES                   #
 ##########################################
 
@@ -242,11 +244,60 @@ async def roll(ctx, dice):
 
 
 ##########################################
+#           FLIGHT RISING                #
+##########################################
+@client.command(help=f"track = true or false, to post current IDs in this channel")
+async def FR_IDs(ctx, track):
+    if (track == "now"):
+        id_info = GetCurrentID()
+        await ctx.channel.send(id_info)
+    else:
+        with open(IDs_PATH,'r') as f:
+            IDs_data = json.load(f)
+
+        if (track == "true"):
+            IDs_data["channels"].append(ctx.channel.id)
+        else:
+            IDs_data["channels"].remove(ctx.channel.id)
+
+        with open(IDs_PATH, "w") as f:
+            json.dump(IDs_data, f, indent=4)
+
+        await ctx.send(f"Flight Rising ID tracking on : {track}")
+
+@tasks.loop(minutes=10)
+async def check_ids_task():
+
+    id_info = GetCurrentID()
+    with open(IDs_PATH,'r') as f:
+        IDs_data = json.load(f)
+
+    for channel_id in IDs_data["channels"]:
+        channel = client.get_channel(id=channel_id)
+        await channel.send(id_info)
+
+
+def GetCurrentID():
+    load_dotenv()
+    COOKIE = os.getenv('FLIGHT_RISING_COOKIE')
+    url = 'https://www1.flightrising.com/search/dragons?page=1&sort=id_asc&name=&exalted=0&progen=&breed=&bodygene=&winggene=&tertgene=&gender=&body=&wings=&tert=&element=&body_range=&wings_range=&tert_range=&age=&rtb=&gen1=&pattern=&id_length=&level_min=&level_max=&eyetype=&hibernal_cooldown_status=&ancient=&named=&hibernal=&silhouette_unlocked=&sort=id_desc&page=1'
+    headers = {'User-Agent': 'Mozilla/5.0','Cookie':COOKIE}
+
+    r = requests.get(url,headers=headers)
+    soup = BeautifulSoup(r.content, 'html.parser')
+    id_block = soup.find("div",{"class":"dragon-search-result-level"}).contents[0]
+    id = re.search('([^\s]+)', id_block).group(0)
+
+    time = soup.find("span",{"class":"time common-tooltip"})['title']
+    return "Current ID: " + id + " Time: " + time + " FRT"
+
+##########################################
 #             GENERAL                    #
 ##########################################
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
+    check_ids_task.start()
 
 @client.event
 async def on_message(message):
@@ -265,7 +316,7 @@ async def on_message(message):
     if (message.author.id != 287009371966406667 and random.random() < 0.05 and message.guild.id == 673715193984974904) and "animat" in message.content.lower():
         await message.channel.send("_Summons gervig_")
 
-    if random.random() < 0.005:
+    if random.random() < 0.001:
         await message.channel.send("AAAAAAAAAAAAAAAAAAAAA")
 
     await client.process_commands(message)
