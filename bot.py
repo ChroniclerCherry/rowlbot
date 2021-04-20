@@ -256,9 +256,11 @@ async def FR_IDs(ctx, track):
             IDs_data = json.load(f)
 
         if (track == "true"):
-            IDs_data["channels"].append(ctx.channel.id)
+            if (ctx.channel.id not in IDs_data["channels"]):
+                IDs_data["channels"].append(ctx.channel.id)
         else:
-            IDs_data["channels"].remove(ctx.channel.id)
+            if (ctx.channel.id in IDs_data["channels"]):
+                IDs_data["channels"].remove(ctx.channel.id)
 
         with open(IDs_PATH, "w") as f:
             json.dump(IDs_data, f, indent=4)
@@ -283,13 +285,16 @@ def GetCurrentID():
     url = 'https://www1.flightrising.com/search/dragons?page=1&sort=id_asc&name=&exalted=0&progen=&breed=&bodygene=&winggene=&tertgene=&gender=&body=&wings=&tert=&element=&body_range=&wings_range=&tert_range=&age=&rtb=&gen1=&pattern=&id_length=&level_min=&level_max=&eyetype=&hibernal_cooldown_status=&ancient=&named=&hibernal=&silhouette_unlocked=&sort=id_desc&page=1'
     headers = {'User-Agent': 'Mozilla/5.0','Cookie':COOKIE}
 
-    r = requests.get(url,headers=headers)
-    soup = BeautifulSoup(r.content, 'html.parser')
-    id_block = soup.find("div",{"class":"dragon-search-result-level"}).contents[0]
-    id = re.search('([^\s]+)', id_block).group(0)
+    try:
+        r = requests.get(url,headers=headers)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        id_block = soup.find("div",{"class":"dragon-search-result-level"}).contents[0]
+        id = re.search('([^\s]+)', id_block).group(0)
 
-    time = soup.find("span",{"class":"time common-tooltip"})['title']
-    return "Current ID: " + id + " Time: " + time + " FRT"
+        time = soup.find("span",{"class":"time common-tooltip"})['title']
+        return "Current ID: " + id + " Time: " + time + " FRT"
+    except AttributeError:
+        return "Login Cookie expired, please bother Chronicler#9318 to renew it"
 
 ##########################################
 #             GENERAL                    #
