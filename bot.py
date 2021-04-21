@@ -246,6 +246,10 @@ async def roll(ctx, dice):
 ##########################################
 #           FLIGHT RISING                #
 ##########################################
+
+publish_interval_minutes = 10
+minutes_since_last_publish = 10
+
 @client.command(help=f"track = true or false, to post current IDs in this channel")
 async def FR_IDs(ctx, track):
     if (track == "now"):
@@ -258,17 +262,33 @@ async def FR_IDs(ctx, track):
         if (track == "true"):
             if (ctx.channel.id not in IDs_data["channels"]):
                 IDs_data["channels"].append(ctx.channel.id)
-        else:
+                await ctx.send(f"Flight rising ID tracking enabled for this channel")
+        elif (track == "false"):
             if (ctx.channel.id in IDs_data["channels"]):
                 IDs_data["channels"].remove(ctx.channel.id)
+                await ctx.send(f"Flight rising ID tracking disabled for this channel")
+        else:
+            try:
+                global publish_interval_minutes
+                publish_interval_minutes = int(track)
+                await ctx.send(f"Time interval set to : {track}")
+            except ValueError:
+                await ctx.send(f"Unknown command.")
+            
 
         with open(IDs_PATH, "w") as f:
             json.dump(IDs_data, f, indent=4)
 
-        await ctx.send(f"Flight Rising ID tracking on : {track}")
-
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=1)
 async def check_ids_task():
+    global minutes_since_last_publish
+    global publish_interval_minutes
+
+    if (minutes_since_last_publish == publish_interval_minutes):
+        minutes_since_last_publish = 1
+    else:
+        minutes_since_last_publish += 1
+        return
 
     id_info = GetCurrentID()
     with open(IDs_PATH,'r') as f:
@@ -292,7 +312,7 @@ def GetCurrentID():
         id = re.search('([^\s]+)', id_block).group(0)
 
         time = soup.find("span",{"class":"time common-tooltip"})['title']
-        return "Current ID: " + id + " Time: " + time + " FRT"
+        return "Current ID: " + id + " | FR Time: " + time + " | Current Time: " + pytz.utc.localize(datetime.utcnow()).strftime("%b %d %Y %H:%M:%S") + " UTC"
     except AttributeError:
         return "Login Cookie expired, please bother Chronicler#9318 to renew it"
 
